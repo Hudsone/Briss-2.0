@@ -46,6 +46,35 @@ public class ImageFinderUtil {
 		return null;
 	}
 
+	public static double[] minFrom2dTo1d(final WritableRaster raster, final int axis) {
+		if (axis == X_AXIS) {
+			double[] values = new double[raster.getWidth()];
+			for (int i = 0; i < raster.getWidth(); i++) {
+				int[] tmp = null;
+				int min = 10000;
+				tmp = raster.getPixels(i, 0, 1, raster.getHeight(), tmp);
+				for (int element : tmp) {
+					min = Math.min(min, element);
+				}
+				values[i] = min;
+			}
+			return values;
+		} else if (axis == Y_AXIS) {
+			double[] values = new double[raster.getHeight()];
+			for (int i = 0; i < raster.getHeight(); i++) {
+				int[] tmp = null;
+				int min = 10000;
+				tmp = raster.getPixels(0, i, raster.getWidth(), 1, tmp);
+				for (int element : tmp) {
+					min = Math.min(min, element);
+				}
+				values[i] = min;
+			}
+			return values;
+		}
+		return null;
+	}
+
 	public static double[] createDerivation(final double[] values) {
 		double[] derivedValues = new double[values.length - 1];
 		for (int i = 0; i < derivedValues.length; i++) {
@@ -54,27 +83,41 @@ public class ImageFinderUtil {
 		return derivedValues;
 	}
 
-	public static int findPosition(final double[] sds, final int orientation) {
+	public static int findPosition(final double[] sds, final int orientation, final int absolute_threshold) {
 		int position = 0;
 
 		switch (orientation) {
 			case ORIENTATION_TOP :
 			case ORIENTATION_LEFT :
 				for (int i = 0; i < sds.length - LOOK_AHEAD_PIXEL_NR; i++) {
-					int cnt = diffCounter(sds, i, i + LOOK_AHEAD_PIXEL_NR);
-					if (cnt > RATIO_LOOK_AHEAD_SATISFY * LOOK_AHEAD_PIXEL_NR) {
-						position = i;
-						break;
+					if (absolute_threshold != 0) {
+						if (sds[i] < absolute_threshold) {
+							position = Math.max(1, i - LOOK_AHEAD_PIXEL_NR);
+							break;
+						}
+					} else {
+						int cnt = diffCounter(sds, i, i + LOOK_AHEAD_PIXEL_NR);
+						if (cnt > RATIO_LOOK_AHEAD_SATISFY * LOOK_AHEAD_PIXEL_NR) {
+							position = i;
+							break;
+						}
 					}
 				}
 				break;
 			case ORIENTATION_BOTTOM :
 			case ORIENTATION_RIGHT :
 				for (int i = sds.length - 1; i >= 0 + LOOK_AHEAD_PIXEL_NR; i--) {
-					int cnt = diffCounter(sds, i - LOOK_AHEAD_PIXEL_NR, i);
-					if (cnt > RATIO_LOOK_AHEAD_SATISFY * LOOK_AHEAD_PIXEL_NR) {
-						position = i;
-						break;
+					if (absolute_threshold != 0) {
+						if (sds[i] < 100) {
+							position = Math.min(sds.length - 1, i + LOOK_AHEAD_PIXEL_NR);
+							break;
+						}
+					} else {
+						int cnt = diffCounter(sds, i - LOOK_AHEAD_PIXEL_NR, i);
+						if (cnt > RATIO_LOOK_AHEAD_SATISFY * LOOK_AHEAD_PIXEL_NR) {
+							position = i;
+							break;
+						}
 					}
 				}
 				break;
